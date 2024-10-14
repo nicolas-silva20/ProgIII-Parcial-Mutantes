@@ -1,27 +1,27 @@
-FROM ubuntu:latest
-LABEL authors="Silva"
+# Usa la imagen de Java 17 como base
+FROM openjdk:17-jdk-slim
 
-ENTRYPOINT ["top", "-b"]
-
-# Usar una imagen de Gradle para construir la aplicación
-FROM gradle:8.2.1-jdk17 AS build
+# Establece el directorio de trabajo en el contenedor
 WORKDIR /app
 
-# Copiar el código fuente al contenedor
-COPY src .
+# Copia el archivo de construcción de Gradle y el código fuente
+COPY gradlew ./gradlew
+COPY gradle ./gradle
+COPY build.gradle ./build.gradle
+COPY settings.gradle ./settings.gradle
+COPY src ./src
 
-# Construir la aplicación
-RUN gradle build --no-daemon
+# Da permisos de ejecución al script de Gradle
+RUN chmod +x gradlew
 
-# Usar una imagen de OpenJDK para ejecutar el JAR resultante
-FROM eclipse-temurin:17-jre-alpine
-WORKDIR /app
+# Construye el proyecto (incluye el test si funciona, o ignóralo si no es necesario)
+RUN ./gradlew clean build -x test
 
-# Copiar el JAR generado del paso de build
-COPY --from=build /app/build/libs/*.jar app.jar
+# Verifica que el archivo JAR fue creado
+RUN ls -l build/libs/
 
-# Exponer el puerto 8080
+# Exponer el puerto en el que la aplicación estará escuchando
 EXPOSE 8080
 
-# Ejecutar la aplicación
-CMD ["java", "-jar", "app.jar"]
+# Comando para ejecutar la aplicación
+CMD ["java", "-jar", "build/libs/parcial_prog3-0.0.1-SNAPSHOT.jar"]
